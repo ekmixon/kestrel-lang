@@ -32,7 +32,7 @@ def test_unexpected_token(fake_bundle_file):
         err = einfo.value
         assert err.line == 1
         assert err.column == 10
-        assert set(err.expected) == set(["FROM", "WHERE"])
+        assert set(err.expected) == {"FROM", "WHERE"}
 
 
 def test_unexpected_eol(fake_bundle_file):

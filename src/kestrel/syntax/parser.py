@@ -55,7 +55,7 @@ class _PostParsing(Transformer):
         return {
             "command": "disp",
             "input": _extract_var(args, self.default_variable),
-            "attrs": paths if paths else "*",
+            "attrs": paths or "*",
             "limit": _extract_int(args),
         }
 
@@ -72,7 +72,7 @@ class _PostParsing(Transformer):
         time_range = {}
         for item in args:
             if isinstance(item, dict):
-                time_range.update(item)
+                time_range |= item
 
         if "start" in time_range and "stop" in time_range:
             packet["timerange"] = (time_range["start"], time_range["stop"])
@@ -93,7 +93,7 @@ class _PostParsing(Transformer):
         time_range = {}
         for item in args:
             if isinstance(item, dict):
-                time_range.update(item)
+                time_range |= item
 
         if "start" in time_range and "stop" in time_range:
             packet["timerange"] = (time_range["start"], time_range["stop"])
@@ -130,11 +130,15 @@ class _PostParsing(Transformer):
         }
 
     def apply(self, args):
-        input_vars = []
-        for arg in args:
-            if isinstance(arg, dict) and "variables" in arg:
-                input_vars = arg["variables"]
-                break
+        input_vars = next(
+            (
+                arg["variables"]
+                for arg in args
+                if isinstance(arg, dict) and "variables" in arg
+            ),
+            [],
+        )
+
         return {
             "command": "apply",
             "workflow": _first(args),
@@ -224,17 +228,15 @@ def _extract_var(args, default_variable):
     # extract a single variable from the args
     # default variable if no variable is found
     v = _assert_and_extract_single("VARIABLE", args)
-    return v if v else default_variable
+    return v or default_variable
 
 
 def _extract_vars(args, default_variable):
-    var_names = []
-    for arg in args:
-        if hasattr(arg, "type") and arg.type == "VARIABLE":
-            var_names.append(arg.value)
-    if not var_names:
-        var_names = [default_variable]
-    return var_names
+    return [
+        arg.value
+        for arg in args
+        if hasattr(arg, "type") and arg.type == "VARIABLE"
+    ] or [default_variable]
 
 
 def _extract_stixpath(args):
@@ -244,8 +246,7 @@ def _extract_stixpath(args):
 
 def _extract_datasource(args):
     raw_ds = _assert_and_extract_single("DATASRC", args)
-    ds = raw_ds.strip('"') if raw_ds else None
-    return ds
+    return raw_ds.strip('"') if raw_ds else None
 
 
 def _extract_entity_type(args):
@@ -262,26 +263,24 @@ def _extract_direction(args, default_sort_order):
     # extract sort direction from args
     # default direction if no variable is found
     # return: if descending
-    ds = [
-        x for x in args if hasattr(x, "type") and (x.type == "ASC" or x.type == "DESC")
-    ]
+    ds = [x for x in args if hasattr(x, "type") and x.type in ["ASC", "DESC"]]
     assert len(ds) <= 1
     d = ds.pop().type if ds else default_sort_order
-    return True if d == "ASC" else False
+    return d == "ASC"
 
 
 def _extract_if_reversed(args):
     rs = [x for x in args if hasattr(x, "type") and x.type == "REVERSED"]
-    return True if rs else False
+    return bool(rs)
 
 
 def _merge_args(arg_type, args):
-    items = dict()
+    items = {}
     for arg in args:
         if not isinstance(arg, Tree) or not hasattr(arg, "data"):
             continue
         if arg.data != arg_type:
             continue
         for t in arg.children:
-            items.update(t)
+            items |= t
     return items

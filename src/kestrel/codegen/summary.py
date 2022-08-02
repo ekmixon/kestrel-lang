@@ -36,12 +36,10 @@ def gen_variable_summary(var_name, var_struct):
 
     query_ids = _get_variable_query_ids(var_struct)
 
-    is_from_direct_datasource = False
     var_birth_cmd = var_struct.birth_statement["command"]
-    if var_birth_cmd == "find" or (
+    is_from_direct_datasource = var_birth_cmd == "find" or (
         var_birth_cmd == "get" and "datasource" in var_struct.birth_statement
-    ):
-        is_from_direct_datasource = True
+    )
 
     for entity_type in var_struct.store.types():
 

@@ -30,10 +30,7 @@ class VarStruct:
         self.type = entity_type
 
         # how many entities/SCOs in the variable
-        if length is not None:
-            self.length = length
-        else:
-            self.length = get_variable_entity_count(self)
+        self.length = length if length is not None else get_variable_entity_count(self)
         if records_count is not None:
             self.records_count = records_count
         else:
@@ -95,10 +92,9 @@ class VarStruct:
 def _get_entity_type(stmt, symtable, dep_vars):
     if "type" in stmt:
         return stmt["type"]
-    else:
-        dep_var_name = dep_vars[0]
-        dep_var = symtable[dep_var_name]
-        return dep_var.type
+    dep_var_name = dep_vars[0]
+    dep_var = symtable[dep_var_name]
+    return dep_var.type
 
 
 def _get_data_source(stmt, dep_var_names, symtable):

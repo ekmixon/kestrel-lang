@@ -12,11 +12,11 @@ class KestrelException(Exception):
     """
 
     def __init__(self, error, suggestion=""):
-        self.error = error if error[-1] == "." else error + "."
+        self.error = error if error[-1] == "." else f"{error}."
         self.suggestion = (
             suggestion
             if (not suggestion or suggestion[-1] == ".")
-            else suggestion + "."
+            else f"{suggestion}."
         )
 
     def __str__(self):

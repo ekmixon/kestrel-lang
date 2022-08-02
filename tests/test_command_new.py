@@ -105,7 +105,7 @@ newvar = NEW [ {"type": "process", "name": "cmd.exe", "pid": "123"}
         assert v[0]["type"] == "process"
         assert v[0]["name"] in ["cmd.exe", "explorer.exe"]
         assert v[0]["pid"] == "123"
-        assert v[1]["pid"] == None
+        assert v[1]["pid"] is None
 
 
 def test_new_with_missing_field_first():
@@ -120,5 +120,5 @@ newvar = NEW [ {"type": "process", "name": "cmd.exe"}
         assert len(v) == 2
         assert v[0]["type"] == "process"
         assert v[0]["name"] in ["cmd.exe", "explorer.exe"]
-        assert v[0]["pid"] == None
+        assert v[0]["pid"] is None
         assert v[1]["pid"] == "99"

@@ -6,6 +6,7 @@ for more details.
 
 """
 
+
 import dateutil.parser
 import datetime
 from collections import defaultdict
@@ -102,7 +103,7 @@ stix_x_ibm_event_mapping = {
 generic_relations = ["linked"]
 
 all_relations = list(
-    set([x[1] for x in stix_2_0_ref_mapping.keys() if x[1]] + generic_relations)
+    set([x[1] for x in stix_2_0_ref_mapping if x[1]] + generic_relations)
 )
 
 
@@ -123,8 +124,7 @@ def get_entity_id_attribute(variable):
                 query.append(Projection([attr]))
                 query.append(Unique())
                 rows = variable.store.run_query(query).fetchall()
-                all_values = [row[attr] for row in rows if row[attr]]
-                if all_values:
+                if all_values := [row[attr] for row in rows if row[attr]]:
                     id_attr = attr
                     break
 

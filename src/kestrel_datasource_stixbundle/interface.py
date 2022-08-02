@@ -54,7 +54,7 @@ class StixBundleInterface(AbstractDataSourceInterface):
                     bundle_in = json.load(f)
             except Exception:
                 raise DataSourceConnectionError(uri)
-        elif scheme == "http" or scheme == "https":
+        elif scheme in ["http", "https"]:
             try:
                 bundle_in = requests.get(uri).json()
             except requests.exceptions.ConnectionError:

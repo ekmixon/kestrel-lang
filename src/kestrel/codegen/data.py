@@ -12,10 +12,7 @@ def load_data(
 ):
     # if input data is list of strings, load directly
     # logic handled in store
-    if type(input_data) == str:
-        data = json.loads(input_data)
-    else:
-        data = input_data
+    data = json.loads(input_data) if type(input_data) == str else input_data
     if type(data) == list and type(data[0]) == str:
         if not input_entity_type:
             raise MissingEntityType
@@ -41,10 +38,9 @@ def load_data_file(store, output_entity_table, file_path, input_entity_type=None
         with open(file_path) as input_file:
             data = json.load(input_file)
     query_id = str(uuid.uuid5(uuid.NAMESPACE_URL, str(file_path)))
-    entity_type = load_data(
+    return load_data(
         store, output_entity_table, data, input_entity_type, query_id
     )
-    return entity_type
 
 
 def dump_data_to_file(store, input_entity_table, file_path):

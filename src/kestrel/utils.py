@@ -26,8 +26,7 @@ def config_paths():
         pathlib.Path(os.getenv("HOME", "")) / ".config" / KESTREL_CONFIG,
     ]
 
-    dynamic_config_file = os.getenv("KESTREL_CONFIG_PATH")
-    if dynamic_config_file:
+    if dynamic_config_file := os.getenv("KESTREL_CONFIG_PATH"):
         paths.append(dynamic_config_file)
 
     path_dedups = []
@@ -47,7 +46,7 @@ def remove_empty_dicts(ds):
 def dedup_dicts(ds):
     # deduplicate list({string:string})
     # this is the results from SQL query
-    return [dict(s) for s in set(frozenset(d.items()) for d in ds)]
+    return [dict(s) for s in {frozenset(d.items()) for d in ds}]
 
 
 def dedup_ordered_dicts(ds):

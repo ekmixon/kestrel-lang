@@ -12,5 +12,4 @@ def get_keywords():
     keywords = [x.pattern.value for x in alphabet_patterns] + all_relations
     keywords_lower = map(lambda x: x.lower(), keywords)
     keywords_upper = map(lambda x: x.upper(), keywords)
-    keywords_comprehensive = list(chain(keywords_lower, keywords_upper))
-    return keywords_comprehensive
+    return list(chain(keywords_lower, keywords_upper))

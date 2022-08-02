@@ -18,7 +18,7 @@ class AnalyticsManager:
         self.scheme_to_interface = {}
         interfaces = _load_analytics_interfaces()
         for i in interfaces:
-            self.scheme_to_interface.update({s: i for s in i.schemes()})
+            self.scheme_to_interface |= {s: i for s in i.schemes()}
 
         self.default_schema = default_schema
         if default_schema not in self.scheme_to_interface:
@@ -39,17 +39,18 @@ class AnalyticsManager:
         if not scheme:
             # If there's only 1 and use didn't specify, use it
             scheme = self.default_schema
-            if not splitter:
-                uri = self.default_schema + "://" + uri
-            else:
-                uri = self.default_schema + uri
+            uri = (
+                self.default_schema + uri
+                if splitter
+                else f"{self.default_schema}://{uri}"
+            )
+
         scheme = scheme.lower()
         if scheme not in self.scheme_to_interface:
             raise AnalyticsInterfaceNotFound(scheme)
-        rs = self.scheme_to_interface[scheme].execute(
+        return self.scheme_to_interface[scheme].execute(
             uri, argument_variables, session_id, parameters
         )
-        return rs
 
 
 def _list_analytics_interfaces():

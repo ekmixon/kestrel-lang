@@ -62,7 +62,7 @@ class DockerInterface(AbstractAnalyticsInterface):
             for img in image_names
             if img.startswith(DOCKER_IMAGE_PREFIX)
         ]
-        _logger.debug(f"Analytics names obtained: {str(analytics_names)}")
+        _logger.debug(f"Analytics names obtained: {analytics_names}")
         return analytics_names
 
     @staticmethod
@@ -139,12 +139,12 @@ class DockerInterface(AbstractAnalyticsInterface):
             if var_data is None:
                 continue
 
-            if not "id" in var_data:
+            if "id" not in var_data:
                 raise AnalyticsError(
                     f'analytics "{analytics_name}" yielded invalid return {arg_var_file_path} without "id".'
                 )
 
-            if not "type" in var_data:
+            if "type" not in var_data:
                 raise AnalyticsError(
                     f'analytics "{analytics_name}" yielded invalid return {arg_var_file_path} without "type".'
                 )
@@ -159,20 +159,17 @@ class DockerInterface(AbstractAnalyticsInterface):
             var_data_dict = var_data.to_dict(orient="records")
             var.store.reassign(var.entity_table, var_data_dict)
 
-        # process returned display
-        disp_files = list(display_dir.iterdir())
-        if disp_files:
+        if disp_files := list(display_dir.iterdir()):
             disp_file = disp_files.pop()
             if disp_files:
                 raise AnalyticsError(
                     f'analytics "{analytics_name}" yielded more than one display files'
                 )
-            if disp_file.suffix == ".html":
-                with open(disp_file, "r") as h:
-                    html = h.read()
-                    display = DisplayHtml(html)
-            else:
+            if disp_file.suffix != ".html":
                 raise NotImplementedError
+            with open(disp_file, "r") as h:
+                html = h.read()
+                display = DisplayHtml(html)
         else:
             display = None
 

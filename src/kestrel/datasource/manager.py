@@ -18,7 +18,7 @@ class DataSourceManager:
         self.scheme_to_interface = {}
         interfaces = _load_data_source_interfaces()
         for i in interfaces:
-            self.scheme_to_interface.update({s: i for s in i.schemes()})
+            self.scheme_to_interface |= {s: i for s in i.schemes()}
 
         # important state keeper, needed in Session()
         self.queried_data_sources = [None]
@@ -41,10 +41,12 @@ class DataSourceManager:
         scheme, splitter, path = uri.rpartition("://")
         if not scheme:
             scheme = self.default_schema
-            if not splitter:
-                uri = self.default_schema + "://" + uri
-            else:
-                uri = self.default_schema + uri
+            uri = (
+                self.default_schema + uri
+                if splitter
+                else f"{self.default_schema}://{uri}"
+            )
+
         scheme = scheme.lower()
         if scheme not in self.scheme_to_interface:
             raise DataSourceInterfaceNotFound(scheme)

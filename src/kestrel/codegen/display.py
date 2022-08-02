@@ -46,8 +46,7 @@ class DisplayDataframe(AbstractDisplay):
 
     def to_dict(self):
         body = self.dataframe.fillna(0).to_dict(orient="records")
-        msg = {"display": "dataframe", "data": body}
-        return msg
+        return {"display": "dataframe", "data": body}
 
 
 class DisplayBlockSummary(DisplayDataframe):
@@ -89,7 +88,7 @@ class DisplayBlockSummary(DisplayDataframe):
 
     def to_dict(self):
         data = self.dataframe.fillna(0).to_dict(orient="records")
-        msg = {
+        return {
             "display": "execution summary",
             "data": {
                 "execution time": self.exec_time_sec,
@@ -97,7 +96,6 @@ class DisplayBlockSummary(DisplayDataframe):
                 "footnotes": self.footnotes,
             },
         }
-        return msg
 
     def _cal_exec_time(self, exec_time_sec):
         hours = exec_time_sec // 3600
@@ -128,8 +126,7 @@ class DisplayDict(AbstractDisplay):
         return json.dumps(msg)
 
     def to_dict(self):
-        msg = {"display": "dict", "data": self.dict}
-        return msg
+        return {"display": "dict", "data": self.dict}
 
 
 class DisplayHtml(AbstractDisplay):

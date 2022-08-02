@@ -42,10 +42,13 @@ def recognize_var_source(stmt, symtable):
 
 
 def complete_data_source(stmt, ds):
-    if stmt["command"] == "get":
-        if "variablesource" not in stmt and "datasource" not in stmt:
-            if ds:
-                stmt["datasource"] = ds
+    if (
+        stmt["command"] == "get"
+        and "variablesource" not in stmt
+        and "datasource" not in stmt
+        and ds
+    ):
+        stmt["datasource"] = ds
 
 
 def normalize_attrs(stmt, v):

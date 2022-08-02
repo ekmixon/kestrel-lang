@@ -169,16 +169,11 @@ class Session(object):
 
         self.config = self._load_configuration()
 
-        if session_id:
-            self.session_id = session_id
-        else:
-            self.session_id = str(uuid.uuid4())
-
-        self.debug_mode = (
-            True
-            if debug_mode or os.getenv(self.config["debug"]["env_var"], False)
-            else False
+        self.session_id = session_id or str(uuid.uuid4())
+        self.debug_mode = bool(
+            debug_mode or os.getenv(self.config["debug"]["env_var"], False)
         )
+
 
         # default value of runtime_directory ownership
         self.runtime_directory_is_owned_by_upper_layer = False
@@ -374,7 +369,7 @@ class Session(object):
                 data_source_names = (
                     self.data_source_manager.list_data_sources_from_scheme(scheme)
                 )
-                allnames = [scheme + "://" + name for name in data_source_names]
+                allnames = [f"{scheme}://{name}" for name in data_source_names]
                 _logger.debug(
                     f"auto-complete from data source interface {scheme}: {allnames}"
                 )
@@ -382,7 +377,7 @@ class Session(object):
                 analytics_names = self.analytics_manager.list_analytics_from_scheme(
                     scheme
                 )
-                allnames = [scheme + "://" + name for name in analytics_names]
+                allnames = [f"{scheme}://{name}" for name in analytics_names]
                 _logger.debug(
                     f"auto-complete from analytics interface {scheme}: {allnames}"
                 )
@@ -398,10 +393,11 @@ class Session(object):
             )
             _logger.debug("standard auto-complete")
 
-        suggestions = [
-            name[len(last_word) :] for name in allnames if name.startswith(last_word)
+        return [
+            name[len(last_word) :]
+            for name in allnames
+            if name.startswith(last_word)
         ]
-        return suggestions
 
     def close(self):
         """Explicitly close the session.
@@ -438,7 +434,7 @@ class Session(object):
                     complete_data_source(
                         stmt, self.data_source_manager.queried_data_sources[-1]
                     )
-                if stmt["command"] == "load" or stmt["command"] == "save":
+                if stmt["command"] in ["load", "save"]:
                     stmt["path"] = pathlib.Path(stmt["path"]).resolve()
                 if stmt["command"] == "find":
                     check_semantics_on_find(stmt, self.symtable[stmt["input"]].type)
@@ -455,7 +451,6 @@ class Session(object):
                 with set_current_working_directory(self.runtime_directory):
                     output_var_struct, display = execute_cmd(stmt, self)
 
-            # exception completion
             except StixPatternError as e:
                 raise InvalidStixPattern(e.stix)
 
@@ -508,14 +503,13 @@ class Session(object):
 
         if not configs:
             raise NoValidConfiguration
-        else:
-            config = configs.pop(0)
-            for c in configs:
-                for domain, mappings in c.items():
-                    if domain in config:
-                        config[domain].update(mappings)
-                    else:
-                        config[domain] = mappings
+        config = configs.pop(0)
+        for c in configs:
+            for domain, mappings in c.items():
+                if domain in config:
+                    config[domain].update(mappings)
+                else:
+                    config[domain] = mappings
 
         _logger.debug(f"Configuration loaded: {config}")
 
@@ -559,8 +553,7 @@ class Session(object):
         complete_ts = []
         for vts in valid_ts_formats:
             ts = ts_str.split("'")[-1]
-            matched = self._iso_ts.match(ts)
-            if matched:
+            if matched := self._iso_ts.match(ts):
                 try:
                     ts_iso = datetime.strptime(matched.group(), vts).isoformat()
                     complete_ts.append(ts_iso[len(ts) :] + "Z'")
@@ -568,4 +561,3 @@ class Session(object):
                         return complete_ts
                 except:
                     _logger.debug(f"Try to match timestamp {ts} by format {vts}")
-                    pass

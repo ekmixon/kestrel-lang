@@ -29,8 +29,8 @@ def or_patterns(patterns):
                 bodies.append(pattern)
     if bodies:
         if time_range:
-            start = min([t[0] for t in time_range])
-            end = max([t[1] for t in time_range])
+            start = min(t[0] for t in time_range)
+            end = max(t[1] for t in time_range)
             final_pattern = (
                 "(" + " OR ".join(bodies) + ")" + " START " + start + " STOP " + end
             )
@@ -39,7 +39,7 @@ def or_patterns(patterns):
         _logger.debug(f"or pattern merged: {final_pattern}")
     else:
         final_pattern = None
-        _logger.info(f"all None patterns input into or_patterns()")
+        _logger.info("all None patterns input into or_patterns()")
 
     return final_pattern
 
@@ -52,8 +52,7 @@ def build_pattern(
 
     pattern_body = raw_pattern_body
 
-    _logger.debug(f"building pattern for: {raw_pattern_body}")
-
+    _logger.debug(f"building pattern for: {pattern_body}")
     if references:
         _logger.debug(f"references found: {list(references.keys())}")
 
@@ -72,8 +71,8 @@ def build_pattern(
                     for var_name in references.keys()
                 ]
 
-                start = min([t[0] for t in ref_var_time_ranges])
-                end = max([t[1] for t in ref_var_time_ranges])
+                start = min(t[0] for t in ref_var_time_ranges)
+                end = max(t[1] for t in ref_var_time_ranges)
 
                 start_adj = start + datetime.timedelta(seconds=start_offset)
                 end_adj = end + datetime.timedelta(seconds=end_offset)
@@ -100,23 +99,25 @@ def build_pattern(
         _logger.debug(f'final pattern assembled: "{pattern}"')
     else:
         pattern = None
-        _logger.info(f"empty pattern assembled")
+        _logger.info("empty pattern assembled")
 
     return pattern
 
 
 def build_pattern_from_ids(return_type, ids):
     if ids:
-        return "[" + return_type + ":id IN (" + ", ".join(map(_type_value, ids)) + ")]"
+        return f"[{return_type}:id IN (" + ", ".join(map(_type_value, ids)) + ")]"
     else:
         return None
 
 
 def _dereference_multiple_variables(store, symtable, references):
     return {
-        var + "." + attr: "(" + ", ".join(map(_type_value, vals)) + ")"
+        f"{var}.{attr}": "(" + ", ".join(map(_type_value, vals)) + ")"
         for var, attrs in references.items()
-        for attr, vals in _dereference_variable(store, symtable, var, attrs).items()
+        for attr, vals in _dereference_variable(
+            store, symtable, var, attrs
+        ).items()
     }
 
 
@@ -139,9 +140,9 @@ def _dereference_variable(store, symtable, var_name, attributes):
 
     for k, v in attr_to_values.items():
         if not v:
-            raise InvalidAttribute(var_name + "." + k)
+            raise InvalidAttribute(f"{var_name}.{k}")
 
-    _logger.debug(f"deref results: {str(attr_to_values)}")
+    _logger.debug(f"deref results: {attr_to_values}")
 
     return attr_to_values
 
@@ -160,21 +161,19 @@ def _get_variable_time_range(store, symtable, var_name):
     except InvalidAttr as e:
         raise InvalidAttribute(e.message)
     life_span = dedup_dicts(store_return)
-    start = min([dateutil.parser.isoparse(e["first_observed"]) for e in life_span])
-    end = max([dateutil.parser.isoparse(e["last_observed"]) for e in life_span])
+    start = min(dateutil.parser.isoparse(e["first_observed"]) for e in life_span)
+    end = max(dateutil.parser.isoparse(e["last_observed"]) for e in life_span)
     return start, end
 
 
 def _type_value(value):
     if isinstance(value, str):
         return f"'{value}'"
-    elif isinstance(value, int):
+    elif isinstance(value, int) or not isinstance(value, float):
         return str(value)
-    elif isinstance(value, float):
+    else:
         # pandas dataframe and sqlite may save integers as floats
         return str(round(value))
-    else:
-        return str(value)
 
 
 def _replace_ref_with_op(pattern, var_attr, vals_str):

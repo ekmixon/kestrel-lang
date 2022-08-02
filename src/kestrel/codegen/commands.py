@@ -100,10 +100,12 @@ def _debug_logger(func):
 @_default_output
 def merge(stmt, session):
     entity_types = list(
-        set(
-            [get_entity_type(var_name, session.symtable) for var_name in stmt["inputs"]]
-        )
+        {
+            get_entity_type(var_name, session.symtable)
+            for var_name in stmt["inputs"]
+        }
     )
+
     if len(entity_types) > 1:
         raise NonUniformEntityType(entity_types)
     entity_tables = [
@@ -230,7 +232,7 @@ def get(stmt, session):
         )
 
         if session.config["prefetch"]["get"] and len(_output):
-            prefetch_ret_var_table = return_var_table + "_prefetch"
+            prefetch_ret_var_table = f"{return_var_table}_prefetch"
             prefetch_ret_entity_table = _prefetch(
                 return_type,
                 prefetch_ret_var_table,
@@ -263,11 +265,7 @@ def get(stmt, session):
             session.store.merge(
                 return_var_table, [local_var_table, prefetch_ret_entity_table]
             )
-            for v in list(
-                set(
-                    [local_var_table, prefetch_ret_entity_table, prefetch_ret_var_table]
-                )
-            ):
+            for v in list({local_var_table, prefetch_ret_entity_table, prefetch_ret_var_table}):
                 if not session.debug_mode:
                     _logger.debug(f"remove temp store view {v}.")
                     session.store.remove_view(v)
@@ -298,7 +296,6 @@ def find(stmt, session):
     relation = stmt["relation"]
     is_reversed = stmt["reversed"]
     time_range = stmt["timerange"]
-    event_type = "x-oca-event"
     start_offset = session.config["stixquery"]["timerange_start_offset"]
     end_offset = session.config["stixquery"]["timerange_stop_offset"]
 
@@ -317,6 +314,7 @@ def find(stmt, session):
                 return_type, input_type, input_var_name
             )
 
+            event_type = "x-oca-event"
             if (
                 event_type in session.store.types()
                 and are_entities_associated_with_x_ibm_event([input_type, return_type])
@@ -378,11 +376,7 @@ def find(stmt, session):
         except InvalidAttribute:
             local_pattern = None
 
-        local_pattern = or_patterns([local_pattern, event_pattern])
-
-        # by default, `session.store.extract` will generate new entity_table named `local_var_table`
-        # `extract` does not support the case both query_id and pattern are None
-        if local_pattern:
+        if local_pattern := or_patterns([local_pattern, event_pattern]):
             session.store.extract(local_var_table, return_type, None, local_pattern)
             _output = new_var(
                 session.store, local_var_table, [], stmt, session.symtable
@@ -394,7 +388,7 @@ def find(stmt, session):
                 and len(_output)
                 and _output.data_source
             ):
-                prefetch_ret_var_table = return_var_table + "_prefetch"
+                prefetch_ret_var_table = f"{return_var_table}_prefetch"
                 prefetch_ret_entity_table = _prefetch(
                     return_type,
                     prefetch_ret_var_table,
@@ -433,15 +427,7 @@ def find(stmt, session):
                 session.store.merge(
                     return_var_table, [local_var_table, prefetch_ret_entity_table]
                 )
-                for v in list(
-                    set(
-                        [
-                            local_var_table,
-                            prefetch_ret_entity_table,
-                            prefetch_ret_var_table,
-                        ]
-                    )
-                ):
+                for v in list({local_var_table, prefetch_ret_entity_table, prefetch_ret_var_table}):
                     if not session.debug_mode:
                         _logger.debug(f"remove temp store view {v}.")
                         session.store.remove_view(v)
@@ -566,16 +552,12 @@ def _prefetch(
 
     _logger.debug(f"prefetch {return_type} to extend {input_var_name}.")
 
-    pattern_body = compile_identical_entity_search_pattern(
+    if pattern_body := compile_identical_entity_search_pattern(
         input_var_name, symtable[input_var_name], does_support_id
-    )
-
-    if pattern_body:
-        remote_pattern = build_pattern(
+    ):
+        if remote_pattern := build_pattern(
             pattern_body, time_range, start_offset, end_offset, symtable, store
-        )
-
-        if remote_pattern:
+        ):
             data_source = symtable[input_var_name].data_source
             resp = ds_manager.query(data_source, remote_pattern, session_id)
             query_id = resp.load_to_store(store)
@@ -583,10 +565,10 @@ def _prefetch(
             # build the return_var_name view in store
             store.extract(return_var_name, return_type, query_id, remote_pattern)
 
-            _logger.debug(f"prefetch successful.")
+            _logger.debug("prefetch successful.")
             return return_var_name
 
-    _logger.info(f"prefetch return empty.")
+    _logger.info("prefetch return empty.")
     return None
 
 
@@ -596,17 +578,16 @@ def _filter_prefetched_process(
 
     _logger.debug(f"filter prefetched {return_type} for {prefetched_entity_table}.")
 
-    prefetch_filtered_var_name = return_var_name + "_prefetch_filtered"
+    prefetch_filtered_var_name = f"{return_var_name}_prefetch_filtered"
     entity_ids = fine_grained_relational_process_filtering(
         local_var,
         prefetched_entity_table,
         session.store,
         session.config["prefetch"],
     )
-    id_pattern = build_pattern_from_ids(return_type, entity_ids)
-    if id_pattern:
+    if id_pattern := build_pattern_from_ids(return_type, entity_ids):
         session.store.extract(prefetch_filtered_var_name, return_type, None, id_pattern)
-        _logger.debug(f"filter successful.")
+        _logger.debug("filter successful.")
         return prefetch_filtered_var_name
     else:
         _logger.info("no prefetched process found after filtering.")
